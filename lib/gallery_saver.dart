@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gallery_saver/files.dart';
 import 'package:http/http.dart' as http;
@@ -48,6 +49,7 @@ class GallerySaver {
   ///saves image from provided temp path and optional album name in gallery
   static Future<bool?> saveImage(
     String path, {
+    String? replaceName,
     String? albumName,
     bool toDcim = false,
     Map<String, String>? headers,
@@ -60,7 +62,7 @@ class GallerySaver {
       throw ArgumentError(fileIsNotImage);
     }
     if (!isLocalFilePath(path)) {
-      tempFile = await _downloadFile(path, headers: headers);
+      tempFile = await _downloadFile(path, headers: headers, replaceName: replaceName);
       path = tempFile.path;
     }
 
@@ -76,7 +78,7 @@ class GallerySaver {
   }
 
   static Future<File> _downloadFile(String url,
-      {Map<String, String>? headers}) async {
+      {Map<String, String>? headers, String? replaceName}) async {
     print(url);
     print(headers);
     http.Client _client = new http.Client();
@@ -86,10 +88,15 @@ class GallerySaver {
     }
     var bytes = req.bodyBytes;
     String dir = (await getTemporaryDirectory()).path;
-    File file = new File('$dir/${basename(url)}');
+    late File file;
+    if (replaceName != null) {
+      file = new File('$dir/$replaceName${extension(url)}');
+    } else {
+      file = new File('$dir/${basename(url)}');
+    }
+    debugPrint('File path:${file.path}');
     await file.writeAsBytes(bytes);
-    print('File size:${await file.length()}');
-    print(file.path);
+    debugPrint('File size:${await file.length()}');
     return file;
   }
 }
